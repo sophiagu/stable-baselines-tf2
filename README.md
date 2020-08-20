@@ -4,5 +4,5 @@ This repo makes a few modifications to make stable-baselines compatible with TF2
 
 ## Installation Instruction
 - Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install stable-baselines;
-- Locate the folder `stable_baselines/` on your machine;
-- Download and replace `stable_baselines/` with this repo.
+- Download this repo, rename the outermost folder name to `stable_baselines`;
+- Locate the original `stable_baselines/` folder on your machine and replace that with the folder you just downloaded.
