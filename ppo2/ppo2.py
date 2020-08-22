@@ -12,6 +12,8 @@ from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
 
+L2_WEIGHT = .1
+
 
 class PPO2(ActorCriticRLModel):
     """
@@ -185,7 +187,11 @@ class PPO2(ActorCriticRLModel):
                     self.approxkl = .5 * tf.reduce_mean(input_tensor=tf.square(neglogpac - self.old_neglog_pac_ph))
                     self.clipfrac = tf.reduce_mean(input_tensor=tf.cast(tf.greater(tf.abs(ratio - 1.0),
                                                                       self.clip_range_ph), tf.float32))
-                    loss = self.pg_loss - self.entropy * self.ent_coef + self.vf_loss * self.vf_coef
+
+                    self.params = tf.compat.v1.trainable_variables()
+                    weight_params = [v for v in self.params if '/b' not in v.name]
+                    l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in weight_params])
+                    loss = self.pg_loss - self.entropy * self.ent_coef + self.vf_loss * self.vf_coef + l2_loss * L2_WEIGHT
 
                     tf.compat.v1.summary.scalar('entropy_loss', self.entropy)
                     tf.compat.v1.summary.scalar('policy_gradient_loss', self.pg_loss)
@@ -195,7 +201,6 @@ class PPO2(ActorCriticRLModel):
                     tf.compat.v1.summary.scalar('loss', loss)
 
                     with tf.compat.v1.variable_scope('model'):
-                        self.params = tf.compat.v1.trainable_variables()
                         if self.full_tensorboard_log:
                             for var in self.params:
                                 tf.compat.v1.summary.histogram(var.name, var)
