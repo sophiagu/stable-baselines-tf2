@@ -6,7 +6,7 @@ This repo makes a few modifications to make stable-baselines compatible with TF2
 - L2 regularization in `PPO2`. Set L2 loss weight to zero if you want to turn off regularization.
 
 ## Installation Instruction
-- Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install stable-baselines;
+- Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install `stable-baselines`;
 - Locate the original `stable_baselines/` folder on your machine and remove that folder:
 ```
 path=$(find . -type d -name "stable_baselines")
