@@ -14,7 +14,8 @@ rm -r $path
 ```
 - Download (`git clone`) this repo, and copy its content to where `stable_baselines/` used to locate:
 ```
-cp stable-baselines-tf2/* $path
+mkdir $path
+cp -r stable-baselines-tf2/* $path
 ```
 - Delete the downloaded repo:
 ```
