@@ -7,5 +7,9 @@ This repo makes a few modifications to make stable-baselines compatible with TF2
 
 ## Installation Instruction
 - Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install stable-baselines;
-- Download this repo, rename the outermost folder name to `stable_baselines`;
-- Locate the original `stable_baselines/` folder on your machine and replace that with the folder you just downloaded.
+- Locate the original `stable_baselines/` folder on your machine and remove that folder:\
+```rm -r /path/to/stable_baselines```
+- Download (`git clone`) this repo, and copy its content to where `stable_baselines/` used to locate:\
+```cp stable-baselines-tf2/* /path/to/stable_baselines```
+- Delete the downloaded repo:\
+```rm -r stable-baselines-tf2```
