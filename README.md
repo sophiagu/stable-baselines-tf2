@@ -17,7 +17,11 @@ rm -r $path
 mkdir $path
 cp -r stable-baselines-tf2/* $path
 ```
-- Delete the downloaded repo:
+- Check all the files are coped to `$path`:
+```
+ls $path
+```
+- Delete the downloaded repo (and answer `y` to all questions):
 ```
 rm -r stable-baselines-tf2
 ```
