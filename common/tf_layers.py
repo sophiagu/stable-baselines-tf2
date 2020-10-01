@@ -123,6 +123,25 @@ def linear(input_tensor, scope, n_hidden, *, init_scale=1.0, init_bias=0.0):
         weight = tf.compat.v1.get_variable("w", [n_input, n_hidden], initializer=ortho_init(init_scale))
         bias = tf.compat.v1.get_variable("b", [n_hidden], initializer=tf.compat.v1.constant_initializer(init_bias))
         return tf.matmul(input_tensor, weight) + bias
+        
+
+def pos_linear(input_tensor, scope, n_hidden, *, init_scale=1.0, init_bias=0.0):
+    """
+    Creates a fully connected layer for TensorFlow with positive weights
+
+    :param input_tensor: (TensorFlow Tensor) The input tensor for the fully connected layer
+    :param scope: (str) The TensorFlow variable scope
+    :param n_hidden: (int) The number of hidden neurons
+    :param init_scale: (int) The initialization scale
+    :param init_bias: (int) The initialization offset bias
+    :return: (TensorFlow Tensor) fully connected layer
+    """
+    with tf.compat.v1.variable_scope(scope):
+        n_input = input_tensor.get_shape()[1]
+        weight = tf.compat.v1.get_variable("w", [n_input, n_hidden], initializer=ortho_init(init_scale),
+            constraint=tf.compat.v1.keras.constraints.non_neg())
+        bias = tf.compat.v1.get_variable("b", [n_hidden], initializer=tf.compat.v1.constant_initializer(init_bias))
+        return tf.matmul(input_tensor, weight) + bias
 
 
 def lstm(input_tensor, mask_tensor, cell_state_hidden, scope, n_hidden, init_scale=1.0, layer_norm=False):

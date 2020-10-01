@@ -7,7 +7,7 @@ import tensorflow as tf
 from gym.spaces import Discrete
 
 from stable_baselines.common.tf_util import batch_to_seq, seq_to_batch
-from stable_baselines.common.tf_layers import conv, linear, conv_to_fc, lstm
+from stable_baselines.common.tf_layers import conv, linear, pos_linear, conv_to_fc, lstm
 from stable_baselines.common.distributions import make_proba_dist_type, CategoricalProbabilityDistribution, \
     MultiCategoricalProbabilityDistribution, DiagGaussianProbabilityDistribution, BernoulliProbabilityDistribution
 from stable_baselines.common.input import observation_input
@@ -88,6 +88,50 @@ def mlp_extractor(flat_observations, net_arch, act_fun):
 
     return latent_policy, latent_value
 
+
+def mlp_extractor2(flat_observations, flat_observations_x, flat_observations_y, net_arch):
+    """mlp_extractor for ConvexPolicy.
+    The output of the policy_layers is convex w.r.t. flat_observations_y.
+    """
+    latent, latent_x, latent_y = flat_observations, flat_observations_x, flat_observations_y
+    policy_only_layers = []  # Layer sizes of the network that only belongs to the policy network
+    value_only_layers = []  # Layer sizes of the network that only belongs to the value network
+    act_fun = tf.nn.relu
+
+    # Iterate through the shared layers and build the shared parts of the network
+    for idx, layer in enumerate(net_arch):
+        assert isinstance(layer, dict), "Error: the net_arch list can only contain ints and dicts"
+        if 'pi' in layer:
+            assert isinstance(layer['pi'], list), "Error: net_arch[-1]['pi'] must contain a list of integers."
+            policy_only_layers = layer['pi']
+
+        if 'vf' in layer:
+            assert isinstance(layer['vf'], list), "Error: net_arch[-1]['vf'] must contain a list of integers."
+            value_only_layers = layer['vf']
+        break  # From here on the network splits up in policy and value network
+
+    # Build the non-shared part of the network
+    latent_policy_x, latent_policy_z = latent_x, latent_y
+    latent_value = latent
+    for idx, (pi_layer_size, vf_layer_size) in enumerate(zip_longest(policy_only_layers, value_only_layers)):
+        if pi_layer_size is not None:
+            assert isinstance(pi_layer_size, int), "Error: net_arch[-1]['pi'] must only contain integers."
+            latent_policy_x = act_fun(linear(latent_policy_x, "pi_fc_x{}".format(idx), pi_layer_size, init_scale=np.sqrt(2)))
+            latent_policy_xz = tf.compat.v1.keras.layers.Multiply()([
+                latent_policy_z, act_fun(linear(latent_policy_x, "pi_fc_xz{}".format(idx), pi_layer_size, init_scale=np.sqrt(2)))])
+            latent_policy_xy = tf.compat.v1.keras.layers.Multiply()([
+                latent_y, linear(latent_policy_x, "pi_fc_xy{}".format(idx), pi_layer_size, init_scale=np.sqrt(2))])
+            latent_policy_z = act_fun(tf.compat.v1.keras.layers.Add()([
+                pos_linear(latent_policy_xz, "pi_fc_z1{}".format(idx), pi_layer_size, init_scale=np.sqrt(2)),
+                linear(latent_policy_xy, "pi_fc_z2{}".format(idx), pi_layer_size, init_scale=np.sqrt(2)),
+                latent_policy_x]))
+
+        if vf_layer_size is not None:
+            assert isinstance(vf_layer_size, int), "Error: net_arch[-1]['vf'] must only contain integers."
+            latent_value = act_fun(linear(latent_value, "vf_fc{}".format(idx), vf_layer_size, init_scale=np.sqrt(2)))
+
+    return latent_policy_z, latent_value
+    
 
 class BasePolicy(ABC):
     """
@@ -582,6 +626,45 @@ class FeedForwardPolicy(ActorCriticPolicy):
     def value(self, obs, state=None, mask=None):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
+
+class ConvexPolicy(ActorCriticPolicy):
+    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, **kwargs):
+        super(ConvexPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=reuse, scale=True)
+
+        processed_obsx, processed_obsy = self.processed_obs[:, :-1], self.processed_obs[:, -1:]
+        with tf.compat.v1.variable_scope("model", reuse=reuse):
+            activ = tf.nn.relu
+            layers = [64, 64]
+            net_arch = [dict(vf=layers, pi=layers)]
+            
+            pi_latent, vf_latent = mlp_extractor2(
+                tf.compat.v1.layers.flatten(self.processed_obs),
+                tf.compat.v1.layers.flatten(processed_obsx),
+                tf.compat.v1.layers.flatten(processed_obsy),
+                net_arch)
+                
+            self._value_fn = linear(vf_latent, 'vf', 1)
+
+            self._proba_distribution, self._policy, self.q_value = \
+                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
+
+        self._setup_init()
+
+    def step(self, obs, state=None, mask=None, deterministic=False):
+        if deterministic:
+            action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
+                                                   {self.obs_ph: obs})
+        else:
+            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
+                                                   {self.obs_ph: obs})
+        return action, value, self.initial_state, neglogp
+
+    def proba_step(self, obs, state=None, mask=None):
+        return self.sess.run(self.policy_proba, {self.obs_ph: obs})
+
+    def value(self, obs, state=None, mask=None):
+        return self.sess.run(self.value_flat, {self.obs_ph: obs})
+        
 
 class CnnPolicy(FeedForwardPolicy):
     """
