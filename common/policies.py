@@ -634,7 +634,7 @@ class ConvexPolicy(ActorCriticPolicy):
         processed_obsx, processed_obsy = self.processed_obs[:, :-1], self.processed_obs[:, -1:]
         with tf.compat.v1.variable_scope("model", reuse=reuse):
             activ = tf.nn.relu
-            layers = [64, 64]
+            layers = [64, 64, 64]
             net_arch = [dict(vf=layers, pi=layers)]
             
             pi_latent, vf_latent = mlp_extractor2(
