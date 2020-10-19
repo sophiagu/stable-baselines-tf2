@@ -139,39 +139,7 @@ def mlp_extractor_w_sigmoid_layers(flat_observations, price1, price2, net_arch, 
     latent_p2 = tf.nn.sigmoid(linear(linear(latent_p2, "sigmoid_h2", 128, init_scale=np.sqrt(2)), "sigmoid_fc2", 1))
     latent = tf.concat([latent, latent_p1, latent_p2], 1)
 
-    policy_only_layers = []  # Layer sizes of the network that only belongs to the policy network
-    value_only_layers = []  # Layer sizes of the network that only belongs to the value network
-
-    # Iterate through the shared layers and build the shared parts of the network
-    for idx, layer in enumerate(net_arch):
-        if isinstance(layer, int):  # Check that this is a shared layer
-            layer_size = layer
-            latent = act_fun(linear(latent, "shared_fc{}".format(idx), layer_size, init_scale=np.sqrt(2)))
-        else:
-            assert isinstance(layer, dict), "Error: the net_arch list can only contain ints and dicts"
-            if 'pi' in layer:
-                assert isinstance(layer['pi'], list), "Error: net_arch[-1]['pi'] must contain a list of integers."
-                policy_only_layers = layer['pi']
-
-            if 'vf' in layer:
-                assert isinstance(layer['vf'], list), "Error: net_arch[-1]['vf'] must contain a list of integers."
-                value_only_layers = layer['vf']
-            break  # From here on the network splits up in policy and value network
-
-    # Build the non-shared part of the network
-    latent_policy = latent
-    latent_value = latent
-    for idx, (pi_layer_size, vf_layer_size) in enumerate(zip_longest(policy_only_layers, value_only_layers)):
-        if pi_layer_size is not None:
-            assert isinstance(pi_layer_size, int), "Error: net_arch[-1]['pi'] must only contain integers."
-            latent_policy = act_fun(linear(latent_policy, "pi_fc{}".format(idx), pi_layer_size, init_scale=np.sqrt(2)))
-
-        if vf_layer_size is not None:
-            assert isinstance(vf_layer_size, int), "Error: net_arch[-1]['vf'] must only contain integers."
-            latent_value = act_fun(linear(latent_value, "vf_fc{}".format(idx), vf_layer_size, init_scale=np.sqrt(2)))
-
-    return latent_policy, latent_value
-
+    return mlp_extractor(latent, net_arch, act_fun)
 
 class BasePolicy(ABC):
     """
