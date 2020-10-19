@@ -134,16 +134,13 @@ def mlp_extractor2(flat_observations, flat_observations_x, flat_observations_y, 
     
 
 def mlp_extractor_w_sigmoid_layers(flat_observations, price1, price2, net_arch, act_fun):
-    """
-    mlp_extractor in which we first add a simple linear + sigmoid layers for prices.
-    """
     latent, latent_p1, latent_p2 = flat_observations, price1, price2
-    policy_only_layers = []  # Layer sizes of the network that only belongs to the policy network
-    value_only_layers = []  # Layer sizes of the network that only belongs to the value network
-
     latent_p1 = tf.nn.sigmoid(linear(linear(latent_p1, "sigmoid_h1", 128, init_scale=np.sqrt(2)), "sigmoid_fc1", 1))
     latent_p2 = tf.nn.sigmoid(linear(linear(latent_p2, "sigmoid_h2", 128, init_scale=np.sqrt(2)), "sigmoid_fc2", 1))
     latent = tf.concat([latent, latent_p1, latent_p2], 1)
+
+    policy_only_layers = []  # Layer sizes of the network that only belongs to the policy network
+    value_only_layers = []  # Layer sizes of the network that only belongs to the value network
 
     # Iterate through the shared layers and build the shared parts of the network
     for idx, layer in enumerate(net_arch):
