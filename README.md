@@ -4,7 +4,7 @@ This repo makes a few modifications to make stable-baselines compatible with TF2
 
 ## Features Introduced Not Exist In Stable Baselines
 - L2 regularization in `PPO2`. Set L2 loss weight to zero if you want to turn off regularization;
-- A new Policy `ConvexPolicy` that uses a policy network whose output is convex w.r.t. the input corresponding to the last dim of the observation space.
+- New Policies: `ConvexPolicy` which uses a policy network whose output is convex w.r.t. the input corresponding to the last dim of the observation space; `SigmoidMlpPolicy` which adds a linear layer with sigmoid activation before the original feedforward network.
 
 ## Installation Instruction
 - Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install `stable-baselines`;
