@@ -133,6 +133,49 @@ def mlp_extractor2(flat_observations, flat_observations_x, flat_observations_y, 
     return latent_policy_z, latent_value
     
 
+def mlp_extractor_w_sigmoid_layers(flat_observations, price1, price2, net_arch, act_fun):
+    """
+    mlp_extractor in which we first add a simple linear + sigmoid layers for prices.
+    """
+    latent, latent_p1, latent_p2 = flat_observations, price1, price2
+    policy_only_layers = []  # Layer sizes of the network that only belongs to the policy network
+    value_only_layers = []  # Layer sizes of the network that only belongs to the value network
+
+    latent_p1 = tf.nn.sigmoid(linear(linear(latent_p1, "sigmoid_h1", 128, init_scale=np.sqrt(2)), "sigmoid_fc1", 1))
+    latent_p2 = tf.nn.sigmoid(linear(linear(latent_p2, "sigmoid_h2", 128, init_scale=np.sqrt(2)), "sigmoid_fc2", 1))
+    latent = tf.concat([latent, latent_p1, latent_p2], 1)
+
+    # Iterate through the shared layers and build the shared parts of the network
+    for idx, layer in enumerate(net_arch):
+        if isinstance(layer, int):  # Check that this is a shared layer
+            layer_size = layer
+            latent = act_fun(linear(latent, "shared_fc{}".format(idx), layer_size, init_scale=np.sqrt(2)))
+        else:
+            assert isinstance(layer, dict), "Error: the net_arch list can only contain ints and dicts"
+            if 'pi' in layer:
+                assert isinstance(layer['pi'], list), "Error: net_arch[-1]['pi'] must contain a list of integers."
+                policy_only_layers = layer['pi']
+
+            if 'vf' in layer:
+                assert isinstance(layer['vf'], list), "Error: net_arch[-1]['vf'] must contain a list of integers."
+                value_only_layers = layer['vf']
+            break  # From here on the network splits up in policy and value network
+
+    # Build the non-shared part of the network
+    latent_policy = latent
+    latent_value = latent
+    for idx, (pi_layer_size, vf_layer_size) in enumerate(zip_longest(policy_only_layers, value_only_layers)):
+        if pi_layer_size is not None:
+            assert isinstance(pi_layer_size, int), "Error: net_arch[-1]['pi'] must only contain integers."
+            latent_policy = act_fun(linear(latent_policy, "pi_fc{}".format(idx), pi_layer_size, init_scale=np.sqrt(2)))
+
+        if vf_layer_size is not None:
+            assert isinstance(vf_layer_size, int), "Error: net_arch[-1]['vf'] must only contain integers."
+            latent_value = act_fun(linear(latent_value, "vf_fc{}".format(idx), vf_layer_size, init_scale=np.sqrt(2)))
+
+    return latent_policy, latent_value
+
+
 class BasePolicy(ABC):
     """
     The base policy object
@@ -595,12 +638,20 @@ class FeedForwardPolicy(ActorCriticPolicy):
 
         if net_arch is None:
             if layers is None:
-                layers = [64, 64]
+                layers = [64, 64, 64]
             net_arch = [dict(vf=layers, pi=layers)]
 
         with tf.compat.v1.variable_scope("model", reuse=reuse):
             if feature_extraction == "cnn":
                 pi_latent = vf_latent = cnn_extractor(self.processed_obs, **kwargs)
+            elif feature_extraction == "sigmoid_mlp":
+                processed_p1, processed_p2 = self.processed_obs[:, -2:-1], self.processed_obs[:, -1:]
+                pi_latent, vf_latent = mlp_extractor_w_sigmoid_layers(
+                    tf.compat.v1.layers.flatten(self.processed_obs),
+                    tf.compat.v1.layers.flatten(processed_p1),
+                    tf.compat.v1.layers.flatten(processed_p2),
+                    net_arch,
+                    act_fun)
             else:
                 pi_latent, vf_latent = mlp_extractor(tf.compat.v1.layers.flatten(self.processed_obs), net_arch, act_fun)
 
@@ -634,7 +685,7 @@ class ConvexPolicy(ActorCriticPolicy):
         processed_obsx, processed_obsy = self.processed_obs[:, :-1], self.processed_obs[:, -1:]
         with tf.compat.v1.variable_scope("model", reuse=reuse):
             activ = tf.nn.relu
-            layers = [64, 64, 64]
+            layers = [64, 64]
             net_arch = [dict(vf=layers, pi=layers)]
             
             pi_latent, vf_latent = mlp_extractor2(
@@ -727,7 +778,7 @@ class CnnLnLstmPolicy(LstmPolicy):
 
 class MlpPolicy(FeedForwardPolicy):
     """
-    Policy object that implements actor critic, using a MLP (2 layers of 64)
+    Policy object that implements actor critic, using a MLP (3 layers of 64)
 
     :param sess: (TensorFlow session) The current TensorFlow session
     :param ob_space: (Gym Space) The observation space of the environment
@@ -742,6 +793,25 @@ class MlpPolicy(FeedForwardPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, **_kwargs):
         super(MlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
                                         feature_extraction="mlp", **_kwargs)
+
+
+class SigmoidMlpPolicy(FeedForwardPolicy):
+    """
+    Policy object that implements actor critic, using a sigmoid layer coupled with MLP (3 layers of 64)
+
+    :param sess: (TensorFlow session) The current TensorFlow session
+    :param ob_space: (Gym Space) The observation space of the environment
+    :param ac_space: (Gym Space) The action space of the environment
+    :param n_env: (int) The number of environments to run
+    :param n_steps: (int) The number of steps to run for each environment
+    :param n_batch: (int) The number of batch to run (n_envs * n_steps)
+    :param reuse: (bool) If the policy is reusable or not
+    :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction
+    """
+
+    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, **_kwargs):
+        super(SigmoidMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
+                                               feature_extraction="sigmoid_mlp", **_kwargs)
 
 
 class MlpLstmPolicy(LstmPolicy):
