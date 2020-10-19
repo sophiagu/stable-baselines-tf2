@@ -11,6 +11,7 @@ This repo makes a few modifications to make stable-baselines compatible with TF2
 - Locate the original `stable_baselines/` folder on your machine and remove that folder:
 ```
 path=$(find . -type d -name "stable_baselines")
+echo $path
 rm -r $path
 ```
 - Download (`git clone`) this repo, and copy its content to where `stable_baselines/` used to locate:
