@@ -27,3 +27,6 @@ ls $path
 ```
 rm -r stable-baselines-tf2
 ```
+
+## Notes
+- This deposit does not work with `tensorboard` yet due to some weird compatibility issues for `tf.summary` in TF1.
