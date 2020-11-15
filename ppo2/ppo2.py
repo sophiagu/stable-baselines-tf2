@@ -12,8 +12,6 @@ from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
 
-# for mean reversion, l1_weight = 0.08, l2_weight = 0.05
-# for mean reversion modified, l1_weight = 0.01, l2_weight = 0.05
 L1_WEIGHT = 0.01
 L2_WEIGHT = 0.05
 
