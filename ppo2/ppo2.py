@@ -12,7 +12,10 @@ from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
 
-L2_WEIGHT = .1
+# for mean reversion, l1_weight = 0.08, l2_weight = 0.05
+# for mean reversion modified, l1_weight = 0.01, l2_weight = 0.05
+L1_WEIGHT = 0.01
+L2_WEIGHT = 0.05
 
 
 class PPO2(ActorCriticRLModel):
@@ -190,8 +193,10 @@ class PPO2(ActorCriticRLModel):
 
                     self.params = tf.compat.v1.trainable_variables()
                     weight_params = [v for v in self.params if '/b' not in v.name]
+                    l1_loss = sum([tf.reduce_sum(tf.abs(v)) for v in weight_params])
                     l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in weight_params])
-                    loss = self.pg_loss - self.entropy * self.ent_coef + self.vf_loss * self.vf_coef + l2_loss * L2_WEIGHT
+                    loss = self.pg_loss - self.entropy * self.ent_coef + self.vf_loss * self.vf_coef + L1_WEIGHT * l1_loss + L2_WEIGHT * l2_loss
+                    
 
                     tf.compat.v1.summary.scalar('entropy_loss', self.entropy)
                     tf.compat.v1.summary.scalar('policy_gradient_loss', self.pg_loss)
