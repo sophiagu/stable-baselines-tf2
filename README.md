@@ -6,11 +6,11 @@ This repo makes a few modifications to make stable-baselines compatible with TF2
 L1 and L2 regularizations are introduced in `PPO2`. You may mimic them to apply to other agents, e.g., A2C.\
 In general, the network performs better with regularizations. You can tune the L1 and L2 weights based on the following quick facts:
   - L1 regularization makes the network weights sparse;
-  - L2 regularization makes the network weighs small.
+  - L2 regularization makes the network weights small.
 
 ## Installation Instruction
 - Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install `stable-baselines`;
-- Locate the original `stable_baselines/` folder on your machine and remove that folder:
+- Locate the original `stable_baselines/` folder on your machine and remove that folder (depending on your machine and environment types, you may need to use other ways to locate this folder):
 ```
 path=$(find . -type d -name "stable_baselines")
 echo $path
