@@ -5,9 +5,8 @@ This repo makes a few modifications to make stable-baselines compatible with TF2
 ## Features Introduced Not Exist In Stable Baselines
 - L1 and L2 regularizations are introduced in `PPO2`. You may mimic them to apply to other agents, e.g., A2C.
 In general, the network performs better with regularizations. You can tune the L1 and L2 weights based on the following quick facts:
-- L1 regularization makes the network weights sparse;
-- L2 regularization makes the network weighs small.
-- New Policies (you may ignore these because they are introduced for some specific problem settings): `ConvexPolicy` which uses a policy network whose output is convex w.r.t. the input corresponding to the last dim of the observation space; `SigmoidMlpPolicy` which adds a linear layer with sigmoid activation before the original feedforward network.
+  - L1 regularization makes the network weights sparse;
+  - L2 regularization makes the network weighs small.
 
 ## Installation Instruction
 - Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install `stable-baselines`;
