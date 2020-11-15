@@ -3,7 +3,7 @@ The original [stable-baselines](https://github.com/hill-a/stable-baselines) repo
 This repo makes a few modifications to make stable-baselines compatible with TF2.x while keeping the rest of the code logic intact.
 
 ## Features Introduced Not Exist In Stable Baselines
-- L1 and L2 regularizations are introduced in `PPO2`. You may mimic them to apply to other agents, e.g., A2C.
+L1 and L2 regularizations are introduced in `PPO2`. You may mimic them to apply to other agents, e.g., A2C.\
 In general, the network performs better with regularizations. You can tune the L1 and L2 weights based on the following quick facts:
   - L1 regularization makes the network weights sparse;
   - L2 regularization makes the network weighs small.
