@@ -9,7 +9,7 @@ In general, the network performs better with regularizations. You can tune the L
   - L2 regularization makes the network weights small.
 
 ## Installation Instruction
-- Follow the instructions in the [original repo](https://github.com/hill-a/stable-baseline) to install `stable-baselines`;
+- Follow the instructions in the [original repo](https://github.com/hill-a/stable-baselines) to install `stable-baselines`;
 - Locate the original `stable_baselines/` folder on your machine and remove that folder (depending on your machine and environment types, you may need to use other ways to locate this folder):
 ```
 path=$(find . -type d -name "stable_baselines")
